@@ -1,1 +1,3 @@
-web: uvicorn backend.api:app --host 0.0.0.0 --port $PORT
+web: uvicorn SDM.backend.api:app --host 0.0.0.0 --port $PORT
+
+
