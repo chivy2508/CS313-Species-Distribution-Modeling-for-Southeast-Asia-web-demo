@@ -5,6 +5,5 @@ numpy
 scikit-learn
 xgboost
 lightgbm
-joblib
 shap
-scipy
+joblib
