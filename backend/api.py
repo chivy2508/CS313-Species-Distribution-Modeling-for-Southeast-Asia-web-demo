@@ -17,31 +17,39 @@ app = FastAPI(title="Habitat Suitability Prediction API")
 # =====================================================
 # MODEL CONFIG
 # =====================================================
+MODEL_DIR = "backend/model"
+os.makedirs(MODEL_DIR, exist_ok=True)
+
 MODELS = {
     "xgboost": {
-        "model_path": "backend/model/xgb_model.pkl",
+        "name": "XGBoost",
         "feature_path": "backend/model/feature_columns.pkl",
-        "name": "XGBoost"
+        "gdrive_id": "1dvTfFmUqTRD_NrLOs35psw_q7Ziw6PAb",
+        "filename": "xgb_presence_model.pkl"
     },
     "randomforest": {
-        "model_path": "backend/model/rf.pkl",
+        "name": "Random Forest",
         "feature_path": "backend/model/feature_columns.pkl",
-        "name": "Random Forest"
+        "gdrive_id": "1s91CIaYbtkaJpyaWYTGJ_NfdvHcTVXXl",
+        "filename": "rf_presence_model.pkl"
     },
     "logistic": {
-        "model_path": "backend/model/lr.pkl",
+        "name": "Logistic Regression",
         "feature_path": "backend/model/feature_columns.pkl",
-        "name": "Logistic Regression"
+        "gdrive_id": "1A8bXC8je_y7B4SMMeeXkO_7XSBjKDdea",
+        "filename": "lr_presence_model.pkl"
     },
     "lgbm": {
-        "model_path": "backend/model/lgbm_model.pkl",
+        "name": "LightGBM",
         "feature_path": "backend/model/feature_columns.pkl",
-        "name": "LightGBM"
+        "gdrive_id": "1yq5mcl49NoVaqHvZg07Kz35Cyjy0OE0x",
+        "filename": "lgbm_presence_model.pkl"
     },
     "stacking": {
-        "model_path": "backend/model/stacking.pkl",
+        "name": "Stacking",
         "feature_path": "backend/model/feature_columns.pkl",
-        "name": "Stacking Ensemble"
+        "gdrive_id": "1v1fwXCqiSHvuCOhyVddtFNxo0Au-VOW6",
+        "filename": "stacking_presence_model.pkl"
     }
 }
 
@@ -51,11 +59,24 @@ DATA_PATH = "model_data/full_data.csv"
 # CLIMATE SCENARIOS CONFIG
 # =====================================================
 CLIMATE_SCENARIOS = {
-    "2041-2060_ssp245": "backend/data/SEA_wc2.1_30s_bioc_HadGEM3-GC31-LL_ssp245_2041-2060.tif",
-    "2041-2060_ssp585": "backend/data/SEA_wc2.1_30s_bioc_HadGEM3-GC31-LL_ssp585_2041-2060.tif",
-    "2061-2080_ssp245": "backend/data/SEA_wc2.1_30s_bioc_HadGEM3-GC31-LL_ssp245_2061-2080.tif",
-    "2061-2080_ssp585": "backend/data/SEA_wc2.1_30s_bioc_HadGEM3-GC31-LL_ssp585_2061-2080.tif",
+    "2041-2060_ssp245": {
+        "path": "backend/data/SEA_wc2.1_30s_bioc_HadGEM3-GC31-LL_ssp245_2041-2060.tif",
+        "gdrive_id": "111dGgeREwYJ6ZiA1TKr79e73V8HOhQ9S"
+    },
+    "2041-2060_ssp585": {
+        "path": "backend/data/SEA_wc2.1_30s_bioc_HadGEM3-GC31-LL_ssp585_2041-2060.tif",
+        "gdrive_id": "1XX-GJ5KmnPBgJ6sV7hTz9YmBLBLWsazA"
+    },
+    "2061-2080_ssp245": {
+        "path": "backend/data/SEA_wc2.1_30s_bioc_HadGEM3-GC31-LL_ssp245_2061-2080.tif",
+        "gdrive_id": "1dFOriXu3PTLYGNvS-uffEO7G2JNIL33T"
+    },
+    "2061-2080_ssp585": {
+        "path": "backend/data/SEA_wc2.1_30s_bioc_HadGEM3-GC31-LL_ssp585_2061-2080.tif",
+        "gdrive_id": "10wykayenfpsAiH8-85WBnGETgZicXUOn"
+    }
 }
+
 
 # Load climate data
 climate_data = {}
@@ -528,4 +549,5 @@ def local_explain(payload: dict):
         return {
             "local_features": [],
             "note": f"Error: {str(e)}"
+
         }
