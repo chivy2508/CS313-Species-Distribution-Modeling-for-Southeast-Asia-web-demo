@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Habitat Suitability Prediction</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:Inter,Arial,sans-serif;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  height:100vh;overflow:hidden
+}
+header{
+  background:#fff;padding:14px 24px;
+  box-shadow:0 4px 20px rgba(0,0,0,.1)
+}
+h1{
+  margin:0;font-size:22px;font-weight:700;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  background-clip:text;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent
+}
+.controls{
+  background:#fff;padding:10px 24px;
+  display:flex;gap:12px;align-items:center;
+  flex-wrap:wrap
+}
+input[type=file]{display:none}
+label{
+  border:2px solid #e5e7eb;
+  padding:6px 14px;border-radius:8px;cursor:pointer;
+  transition:all .3s ease
+}
+label:hover{border-color:#667eea;color:#667eea}
+
+button{
+  padding:6px 18px;border-radius:8px;
+  border:none;font-weight:600;cursor:pointer;
+  transition:all .3s ease
+}
+.primary{background:#667eea;color:#fff}
+.primary:hover{background:#5568d3;transform:translateY(-1px)}
+.secondary{background:#fff;border:2px solid #e5e7eb;color:#374151}
+.secondary:hover{border-color:#667eea;color:#667eea}
+
+select{
+  padding:6px 12px;border-radius:8px;
+  border:2px solid #e5e7eb;font-weight:500;
+  cursor:pointer;background:#fff
+}
+select:focus{outline:none;border-color:#667eea}
+
+.control-group{
+  display:flex;align-items:center;gap:8px;
+  padding:4px 12px;border-radius:8px;
+  background:#f9fafb
+}
+.control-group label{
+  border:none;padding:0;
+  font-size:13px;font-weight:500;color:#6b7280
+}
+.stats{margin-left:auto;font-size:13px;font-weight:500}
+
+/* Toggle Switch */
+.toggle-container{
+  display:flex;align-items:center;gap:8px;
+  padding:4px 12px;border-radius:8px;
+  background:#f9fafb
+}
+.toggle-label{
+  font-size:13px;font-weight:500;color:#6b7280;
+  border:none;padding:0
+}
+.toggle-switch{
+  position:relative;width:44px;height:24px;
+  cursor:pointer
+}
+.toggle-switch input{display:none}
+.toggle-slider{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  background:#d1d5db;border-radius:24px;
+  transition:.3s
+}
+.toggle-slider:before{
+  content:"";position:absolute;
+  height:18px;width:18px;left:3px;bottom:3px;
+  background:#fff;border-radius:50%;
+  transition:.3s
+}
+.toggle-switch input:checked + .toggle-slider{
+  background:#667eea
+}
+.toggle-switch input:checked + .toggle-slider:before{
+  transform:translateX(20px)
+}
+
+/* Scenario selector */
+.scenario-selector{
+  display:flex;align-items:center;gap:8px;
+  padding:4px 12px;border-radius:8px;
+  background:#eef2ff;border:2px solid #c7d2fe;
+  transition:all .3s ease
+}
+.scenario-selector.disabled{
+  opacity:0.5;pointer-events:none
+}
+.scenario-label{
+  font-size:13px;font-weight:600;color:#4338ca;
+  border:none;padding:0
+}
+.scenario-select{
+  padding:4px 10px;border-radius:6px;
+  border:2px solid #c7d2fe;font-weight:600;
+  cursor:pointer;background:#fff;
+  color:#4338ca;font-size:12px
+}
+.scenario-select:focus{outline:none;border-color:#667eea}
+
+.main{
+  display:flex;height:calc(100vh - 110px);
+  gap:14px;padding:14px
+}
+#map{flex:3;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.12)}
+
+.panel{
+  flex:1;background:#fff;border-radius:16px;
+  padding:16px;overflow-y:auto;
+  box-shadow:0 8px 30px rgba(0,0,0,.12)
+}
+.panel h3{
+  margin:0 0 12px;color:#4f46e5;font-size:15px;
+  font-weight:700;border-bottom:2px solid #f3f4f6;
+  padding-bottom:8px
+}
+ul{padding-left:18px;font-size:13px;margin:8px 0}
+li{margin:4px 0;color:#374151}
+
+canvas{width:100%!important;height:150px!important;margin-bottom:12px}
+
+.info-box{
+  background:#eef2ff;padding:12px;
+  border-radius:10px;font-size:13px;
+  margin-top:12px;border-left:4px solid #667eea
+}
+.info-box b{color:#4338ca}
+
+.feature-grid{
+  display:flex;gap:12px;margin-top:8px
+}
+.feature-box{
+  flex:1;background:#f9fafb;
+  border-radius:10px;padding:12px;
+  border:1px solid #e5e7eb
+}
+.feature-box h4{
+  margin:0 0 8px;font-size:14px;color:#4338ca;
+  font-weight:600
+}
+
+/* Statistics Panel */
+.stats-panel{
+  background:linear-gradient(135deg,#667eea15,#764ba215);
+  border-radius:12px;padding:14px;
+  margin-top:12px;border:2px solid #e0e7ff
+}
+.stats-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:10px;margin-top:8px
+}
+.stat-item{
+  background:#fff;padding:10px;border-radius:8px;
+  box-shadow:0 2px 8px rgba(0,0,0,.05)
+}
+.stat-label{
+  font-size:11px;color:#6b7280;
+  text-transform:uppercase;font-weight:600
+}
+.stat-value{
+  font-size:20px;font-weight:700;
+  color:#4338ca;margin-top:4px
+}
+.stat-subtext{
+  font-size:11px;color:#9ca3af;margin-top:2px
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🌿 Habitat Suitability Prediction</h1>
+</header>
+
+<div class="controls">
+  <label for="csvFile">
+     Chọn file CSV
+  </label>
+  <input type="file" id="csvFile" accept=".csv">
+  
+  <button class="primary" onclick="uploadCSV()"> Dự đoán</button>
+  <button class="secondary" onclick="clearAll()"> Xóa</button>
+
+  <div class="control-group">
+    <label> Model:</label>
+    <select id="modelSelect" onchange="changeModel()">
+     <option value="xgboost">XGBoost</option>
+     <option value="randomforest">Random Forest</option>
+     <option value="logistic">Logistic Regression</option>
+     <option value="lgbm">LightGBM</option>
+     <option value="stacking">Stacking Ensemble</option>
+    </select>
+  </div>
+
+  <div class="toggle-container">
+    <label class="toggle-label"> Tương lai:</label>
+    <label class="toggle-switch">
+      <input type="checkbox" id="futureToggle" onchange="toggleFutureMode()">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <div class="scenario-selector disabled" id="scenarioContainer">
+    <label class="scenario-label"> Kịch bản:</label>
+    <select id="scenarioSelect" class="scenario-select">
+      <option value="2041-2060_ssp245">2041-2060 SSP2-4.5</option>
+      <option value="2041-2060_ssp585">2041-2060 SSP5-8.5</option>
+      <option value="2061-2080_ssp245">2061-2080 SSP2-4.5</option>
+      <option value="2061-2080_ssp585">2061-2080 SSP5-8.5</option>
+    </select>
+  </div>
+
+  <div class="stats" id="stats"></div>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+
+  <div class="panel">
+    <h3> Phân bố xác suất</h3>
+    <canvas id="chart"></canvas>
+
+    <h3> Feature Importance</h3>
+    <div class="feature-grid">
+      <div class="feature-box">
+        <h4>Local (SHAP)</h4>
+        <ul id="localFeatures">
+          <li style="color:#9ca3af">Click vào bản đồ để xem</li>
+        </ul>
+      </div>
+      <div class="feature-box">
+        <h4>Global</h4>
+        <ul id="globalFeatures"></ul>
+      </div>
+    </div>
+
+    <div class="stats-panel">
+      <h3 style="margin:0 0 8px;font-size:14px"> Statistics</h3>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">Total Predictions</div>
+          <div class="stat-value" id="totalPredictions">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Avg Probability</div>
+          <div class="stat-value" id="avgProb">0%</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Present</div>
+          <div class="stat-value" id="presentCount">0</div>
+          <div class="stat-subtext" id="presentPercent">0%</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Absent</div>
+          <div class="stat-value" id="absentCount">0</div>
+          <div class="stat-subtext" id="absentPercent">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <b> Inference time:</b> <span id="inferTime">-</span> ms
+    </div>
+  </div>
+</div>
+
+<script>
+/* MAP INITIALIZATION */
+const map=L.map("map").setView([15,108],5);
+L.tileLayer(
+ "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+ {maxZoom:19,attribution:'© OpenStreetMap © CARTO'}
+).addTo(map);
+
+const markers=L.layerGroup().addTo(map);
+const presenceLayer=L.layerGroup().addTo(map);
+let heatLayer=null;
+let threshold=0.5;
+let clickBins=[0,0,0,0,0];
+let allPredictions=[];
+let useFuture=false;
+let currentScenario="2041-2060_ssp245";
+
+// Statistics
+let stats={
+  total:0,
+  present:0,
+  absent:0,
+  sumProb:0
+};
+
+/* FUTURE MODE TOGGLE */
+function toggleFutureMode(){
+  useFuture=document.getElementById("futureToggle").checked;
+  const container=document.getElementById("scenarioContainer");
+  
+  if(useFuture){
+    container.classList.remove("disabled");
+    presenceLayer.clearLayers();
+  }else{
+    container.classList.add("disabled");
+    loadPresencePoints();
+  }
+  
+  clearAll();
+}
+
+/* SCENARIO CHANGE */
+document.getElementById("scenarioSelect").onchange=function(){
+  currentScenario=this.value;
+  clearAll();
+};
+
+/* LOAD PRESENCE POINTS */
+async function loadPresencePoints(){
+  if(useFuture) return;
+  
+  try {
+    const res=await fetch("/presence_points");
+    const data=await res.json();
+    
+    presenceLayer.clearLayers();
+    
+    data.points.forEach(p=>{
+      L.circleMarker([p.lat,p.lon],{
+        radius:3,
+        fillColor:"#10b981",
+        fillOpacity:0.6,
+        color:"#fff",
+        weight:1
+      }).addTo(presenceLayer)
+      .bindPopup(`
+        <div style="padding:4px">
+          <b style="font-size:13px;color:#10b981">✓ Presence Point</b><br>
+          <span style="font-size:11px;color:#6b7280">📍 ${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}</span>
+        </div>
+      `);
+    });
+    
+    console.log(`Loaded ${data.total} presence points`);
+  } catch(err) {
+    console.error("Error loading presence points:",err);
+  }
+}
+
+// Load presence points on page load
+loadPresencePoints();
+
+/* CHART INITIALIZATION */
+const chart=new Chart(document.getElementById("chart"),{
+ type:"bar",
+ data:{
+  labels:["0-0.2","0.2-0.4","0.4-0.6","0.6-0.8","0.8-1"],
+  datasets:[{
+    data:clickBins,
+    backgroundColor:"#667eea",
+    borderRadius:6
+  }]
+ },
+ options:{
+   plugins:{legend:{display:false}},
+   scales:{
+     y:{beginAtZero:true,ticks:{precision:0}}
+   }
+ }
+});
+
+/* MODEL SELECTION */
+async function changeModel(){
+  const modelKey=document.getElementById("modelSelect").value;
+  
+  try {
+    const res=await fetch("/set_model",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model_key:modelKey})
+    });
+    const data=await res.json();
+    
+    if(data.success){
+      loadGlobal();
+      clearAll();
+      console.log(`Switched to model: ${data.model}`);
+    }
+  } catch(err) {
+    console.error("Error changing model:",err);
+    alert("Lỗi khi chuyển model");
+  }
+}
+
+/* GLOBAL FEATURES */
+async function loadGlobal(){
+  try {
+    const res=await fetch("/feature_importance");
+    const data=await res.json();
+    const ul=document.getElementById("globalFeatures");
+    ul.innerHTML="";
+    
+    data.forEach(f=>{
+      ul.innerHTML+=`<li><b>${f.feature}</b>: ${f.importance}</li>`;
+    });
+  } catch(err) {
+    console.error("Error loading global features:",err);
+  }
+}
+
+loadGlobal();
+
+/* UPDATE STATISTICS */
+function updateStats(){
+  document.getElementById("totalPredictions").innerText=stats.total;
+  document.getElementById("presentCount").innerText=stats.present;
+  document.getElementById("absentCount").innerText=stats.absent;
+  
+  const presentPct=stats.total>0?(stats.present/stats.total*100).toFixed(1):0;
+  const absentPct=stats.total>0?(stats.absent/stats.total*100).toFixed(1):0;
+  const avgProb=stats.total>0?(stats.sumProb/stats.total*100).toFixed(1):0;
+  
+  document.getElementById("presentPercent").innerText=`${presentPct}%`;
+  document.getElementById("absentPercent").innerText=`${absentPct}%`;
+  document.getElementById("avgProb").innerText=`${avgProb}%`;
+}
+
+/* MAP CLICK */
+map.on("click",async e=>{
+  const t0=performance.now();
+  
+  try {
+    const res=await fetch("/predict_by_location",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        lat:e.latlng.lat,
+        lon:e.latlng.lng,
+        threshold,
+        use_future:useFuture,
+        scenario:currentScenario
+      })
+    });
+    
+    const d=await res.json();
+    
+    if(d.error){
+      alert(d.error);
+      return;
+    }
+    
+    document.getElementById("inferTime").innerText=(performance.now()-t0).toFixed(1);
+
+    const p=d.probability;
+    
+    // Update bins
+    if(p<.2)clickBins[0]++;
+    else if(p<.4)clickBins[1]++;
+    else if(p<.6)clickBins[2]++;
+    else if(p<.8)clickBins[3]++;
+    else clickBins[4]++;
+    chart.update();
+
+    // Update statistics
+    stats.total++;
+    stats.sumProb+=p;
+    if(p>=threshold)stats.present++;
+    else stats.absent++;
+    updateStats();
+
+    const markerColor=useFuture?(p>=threshold?"#f59e0b":"#06b6d4"):(p>=threshold?"#ef4444":"#3b82f6");
+
+    L.circleMarker(e.latlng,{
+      radius:8,
+      fillColor:markerColor,
+      fillOpacity:.85,color:"#fff",weight:2
+    }).addTo(markers)
+    .bindPopup(`
+      <div style="padding:4px">
+        <b style="font-size:15px">${d.label}</b><br>
+        <span style="font-size:13px">Xác suất: <b>${(p*100).toFixed(1)}%</b></span><br>
+        ${useFuture?`<span style="font-size:11px;color:#92400e">🔮 ${d.scenario}</span><br>`:''}
+        <span style="font-size:11px;color:#6b7280">📍 ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}</span>
+      </div>
+    `)
+    .openPopup();
+
+    // Load local SHAP features
+    loadLocal(e.latlng.lat,e.latlng.lng);
+    
+  } catch(err) {
+    console.error("Error in map click:",err);
+    alert("Có lỗi xảy ra: " + err.message);
+  }
+});
+
+/* LOCAL SHAP */
+async function loadLocal(lat,lon){
+  try {
+    const res=await fetch("/local_explain",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        lat,
+        lon,
+        use_future:useFuture,
+        scenario:currentScenario
+      })
+    });
+    
+    const data=await res.json();
+    
+    if(data.error){
+      console.error("SHAP error:",data.error);
+      const ul=document.getElementById("localFeatures");
+      ul.innerHTML='<li style="color:#ef4444">⚠️ Không thể tải SHAP</li>';
+      return;
+    }
+    
+    const ul=document.getElementById("localFeatures");
+    ul.innerHTML="";
+    
+    if(data.local_features && data.local_features.length > 0){
+      data.local_features.forEach(f=>{
+        const val=f.shap_value;
+        const color=val>0?"#ef4444":"#3b82f6";
+        const arrow=val>0?"↑":"↓";
+        ul.innerHTML+=`<li><b>${f.feature}</b>: <span style="color:${color};font-weight:600">${arrow} ${Math.abs(val).toFixed(4)}</span></li>`;
+      });
+    } else {
+      ul.innerHTML='<li style="color:#9ca3af">Không có dữ liệu SHAP</li>';
+    }
+    
+    if(data.note){
+      ul.innerHTML+=`<li style="color:#9ca3af;font-size:11px">${data.note}</li>`;
+    }
+  } catch(err) {
+    console.error("Error loading local SHAP:",err);
+    const ul=document.getElementById("localFeatures");
+    ul.innerHTML='<li style="color:#ef4444">⚠️ Lỗi kết nối</li>';
+  }
+}
+
+/* RENDER PREDICTIONS */
+function renderPredictions(predictions){
+  markers.clearLayers();
+  if(heatLayer){
+    map.removeLayer(heatLayer);
+    heatLayer=null;
+  }
+
+  predictions.forEach(d=>{
+    const p=d.probability;
+    if(p>=threshold){
+      const markerColor=useFuture?(p>=0.7?"#f59e0b":"#06b6d4"):(p>=0.7?"#ef4444":p>=0.5?"#f59e0b":"#3b82f6");
+      
+      L.circleMarker([d.decimalLatitude,d.decimalLongitude],{
+        radius:4,
+        fillColor:markerColor,
+        fillOpacity:0.75,
+        color:"#fff",
+        weight:1
+      }).addTo(markers)
+      .bindPopup(`<b>${(p*100).toFixed(1)}%</b>`);
+    }
+  });
+}
+
+/* CSV UPLOAD */
+async function uploadCSV(){
+  const file=document.getElementById("csvFile").files[0];
+  if(!file) return alert("Chưa chọn file");
+
+  const fd=new FormData(); 
+  fd.append("file",file);
+  
+  const url=`/predict_csv?use_future=${useFuture}&scenario=${currentScenario}`;
+
+  try {
+    const res=await fetch(url,{method:"POST",body:fd});
+    const result=await res.json();
+
+    allPredictions=result.rows;
+    
+    // Reset stats
+    stats={total:0,present:0,absent:0,sumProb:0};
+    clickBins=[0,0,0,0,0];
+
+    const bounds=[];
+
+    result.rows.forEach(d=>{
+      const p=d.probability;
+
+      stats.total++;
+      stats.sumProb+=p;
+      if(p>=threshold){
+        stats.present++;
+        bounds.push([d.decimalLatitude,d.decimalLongitude]);
+      }else{
+        stats.absent++;
+      }
+
+      // Update bins
+      if(p<.2)clickBins[0]++;
+      else if(p<.4)clickBins[1]++;
+      else if(p<.6)clickBins[2]++;
+      else if(p<.8)clickBins[3]++;
+      else clickBins[4]++;
+    });
+
+    chart.data.datasets[0].data=clickBins;
+    chart.update();
+    updateStats();
+
+    renderPredictions(allPredictions);
+
+    if(bounds.length>0){
+      map.fitBounds(bounds,{padding:[40,40]});
+    }
+
+    const scenarioText=useFuture?` |  ${result.scenario}`:'';
+    document.getElementById("stats").innerHTML=
+      ` <b>${result.total_rows}</b> locations | ⚡ ${result.inference_time_ms}ms${scenarioText}`;
+  } catch(err) {
+    console.error("Error uploading CSV:",err);
+    alert("Lỗi khi upload file: " + err.message);
+  }
+}
+
+/* CLEAR ALL */
+function clearAll(){
+  markers.clearLayers();
+  if(heatLayer){
+    map.removeLayer(heatLayer);
+    heatLayer=null;
+  }
+  allPredictions=[];
+  clickBins=[0,0,0,0,0];
+  stats={total:0,present:0,absent:0,sumProb:0};
+  
+  chart.data.datasets[0].data=clickBins;
+  chart.update();
+  updateStats();
+  
+  document.getElementById("localFeatures").innerHTML='<li style="color:#9ca3af">Click vào bản đồ để xem</li>';
+  document.getElementById("inferTime").innerText="-";
+  document.getElementById("stats").innerText="";
+  
+  if(!useFuture){
+    loadPresencePoints();
+  }
+}
+</script>
+
+</body>
+</html>
