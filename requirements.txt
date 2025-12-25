@@ -10,3 +10,4 @@ shap
 scipy
 gdown
 python-multipart
+rasterio
